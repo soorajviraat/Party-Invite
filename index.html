@@ -82,6 +82,7 @@ h2{margin:0 0 14px;font-family:var(--display);font-weight:600;font-size:26px;lin
 .yes{background:var(--sun);color:var(--ink);box-shadow:0 6px 0 var(--sun-dk);transform:scale(var(--s,1));transition:transform .35s cubic-bezier(.3,1.6,.5,1)}
 .yes:active{box-shadow:0 2px 0 var(--sun-dk);translate:0 4px}
 .yes.glow{animation:glow 1.1s ease-in-out infinite}
+.btn:disabled{opacity:.75;cursor:default}
 @keyframes glow{0%,100%{box-shadow:0 6px 0 var(--sun-dk),0 0 0 0 rgba(255,207,92,.7)}50%{box-shadow:0 6px 0 var(--sun-dk),0 0 0 16px rgba(255,207,92,0)}}
 .no{position:absolute;left:0;top:0;width:96px;background:rgba(234,251,247,.1);color:var(--foam);border:2px solid var(--foam);
   rotate:var(--r,0deg);z-index:2;padding:0 10px;display:grid;place-items:center}
@@ -188,7 +189,7 @@ output{font-family:var(--display);font-weight:600;font-size:28px;min-width:1.4em
           <button type="button" class="step" id="plus" aria-label="One more guest">+</button>
         </div>
       </div>
-      <label for="msg">Your reply, ready to send</label>
+      <label for="msg" id="msgLab">Your reply, ready to send</label>
       <textarea id="msg" rows="4" readonly></textarea>
       <button type="button" class="btn yes" id="copy" style="--s:1">Copy my reply</button>
       <p class="copy-note" id="copyNote" aria-live="polite"></p>
@@ -221,7 +222,16 @@ output{font-family:var(--display);font-weight:600;font-size:28px;min-width:1.4em
     place: "Location coming soon",
     address: "We'll share the spot very soon",
     replyBy: "",
-    dress: "Wear something that can handle a splash of cake. Little flippers welcome."
+    dress: "Wear something that can handle a splash of cake. Little flippers welcome.",
+    /* Google Form that stores the replies. Leave "action" empty to fall back to copy-and-send. */
+    form: {
+      action: "https://docs.google.com/forms/d/e/1FAIpQLScVfSEQQGewkgIvMAkZqTeM8i6GhIr25nVFHkJbDDgf-6YvHQ/formResponse",
+      name: "entry.829895800",
+      answer: "entry.1885991492",
+      count: "entry.1380515244",
+      yes: "Yes, we will be there",
+      no: "No, we cannot make it"
+    }
   };
   Array.prototype.forEach.call(document.querySelectorAll("[data-k]"), function(el){ el.textContent = CFG[el.getAttribute("data-k")] || ""; });
 
@@ -314,6 +324,27 @@ output{font-family:var(--display);font-weight:600;font-size:28px;min-width:1.4em
       copyBtn=document.getElementById("copy"), copyNote=document.getElementById("copyNote"),
       flipBtn=document.getElementById("flip");
   var mode="yes", count=2;
+  var msgLab=document.getElementById("msgLab");
+
+  function formOn(){ var f=CFG.form||{}; return !!(f.action && f.answer); }
+  function sendRsvp(){
+    var f=CFG.form, who=(nameIn.value||"").trim();
+    if(f.name && !who){ copyNote.textContent="Please add your name first."; nameIn.focus(); return; }
+    var data=new URLSearchParams();
+    if(f.name) data.append(f.name, who);
+    data.append(f.answer, mode==="yes"?f.yes:f.no);
+    if(f.count) data.append(f.count, mode==="yes"?String(count):"0");
+    copyBtn.disabled=true; copyBtn.textContent="Sending...";
+    fetch(f.action,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:data.toString()})
+      .then(function(){
+        copyBtn.textContent="Sent!";
+        copyNote.textContent=mode==="yes"?"You're on the list. See you at the party!":"Thanks for letting us know. We'll miss you!";
+      })
+      .catch(function(){
+        copyBtn.disabled=false; copyBtn.textContent="Send my RSVP";
+        copyNote.textContent="That didn't go through. Check your connection and try again.";
+      });
+  }
 
   function build(){
     var who=(nameIn.value||"").trim()||"We";
@@ -327,16 +358,18 @@ output{font-family:var(--display);font-weight:600;font-size:28px;min-width:1.4em
     mode=m; choose.hidden=true; panel.hidden=false; copyNote.textContent="";
     if(m==="yes"){
       pTitle.textContent="Splashtastic!";
-      pSub.textContent="Tell us who is diving in, then send the reply to "+CFG.hosts+".";
+      pSub.textContent=formOn()?"Tell us who is diving in so we can save your spot.":"Tell us who is diving in, then send the reply to "+CFG.hosts+".";
       stepper.hidden=false;
       flipBtn.textContent="Actually, we can't make it";
     } else {
       pTitle.textContent="We'll miss you!";
-      pSub.textContent="Thanks for letting "+CFG.hosts+" know. Send your reply below.";
+      pSub.textContent=formOn()?"Thanks for letting "+CFG.hosts+" know. Send your answer below.":"Thanks for letting "+CFG.hosts+" know. Send your reply below.";
       stepper.hidden=true;
       flipBtn.textContent="Actually, we can come!";
     }
-    copyBtn.textContent="Copy my reply";
+    copyBtn.disabled=false;
+    copyBtn.textContent=formOn()?"Send my RSVP":"Copy my reply";
+    msgLab.hidden=formOn(); msg.hidden=formOn();
     build();
   }
   function burst(){
@@ -365,6 +398,7 @@ output{font-family:var(--display);font-weight:600;font-size:28px;min-width:1.4em
   document.getElementById("plus").addEventListener("click", function(){ count=Math.min(12,count+1); crew.textContent=count; build(); });
   nameIn.addEventListener("input", build);
   copyBtn.addEventListener("click", function(){
+    if(formOn()){ sendRsvp(); return; }
     function done(){ copyBtn.textContent="Copied!"; copyNote.textContent="Paste it into your chat with "+CFG.hosts+"."; }
     function fallback(){
       msg.focus(); msg.select(); msg.setSelectionRange(0,msg.value.length);
