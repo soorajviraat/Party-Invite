@@ -1,5 +1,9 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Aarushi's Splash Party</title>
-<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800&display=swap">
 <style>
 /* Layout: one narrow column that reads like a dive. Surface (title), mid-water (dive plan), the tank (RSVP), sea floor (footer). */
@@ -12,6 +16,8 @@
   color-scheme: dark;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
 body{
   margin:0; position:relative; overflow-x:hidden;
   background-color:var(--abyss);
@@ -122,6 +128,8 @@ output{font-family:var(--display);font-weight:600;font-size:28px;min-width:1.4em
   .ambient{display:none}
 }
 </style>
+</head>
+<body>
 
 <div class="rays" aria-hidden="true"></div>
 <div class="ambient" id="ambient" aria-hidden="true"></div>
@@ -411,3 +419,5 @@ output{font-family:var(--display);font-weight:600;font-size:28px;min-width:1.4em
   });
 })();
 </script>
+</body>
+</html>
